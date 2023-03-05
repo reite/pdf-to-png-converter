@@ -26,6 +26,7 @@
   ],
   "scripts": {
     "build": "npm run clean && npm run tsc",
+    "install": "npm run tsc",
     "clean": "rimraf ./out ./coverage ./test-results",
     "docker:build": "docker build --compress -t test-pdf-to-png-converter .",
     "predocker:run": "npm run clean",
