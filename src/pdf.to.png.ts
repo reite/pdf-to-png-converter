@@ -1,4 +1,4 @@
-import { Canvas, CanvasRenderingContext2D } from 'canvas';
+import { Canvas, SKRSContext2D } from '@napi-rs/canvas';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { parse, resolve } from 'path';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf';
@@ -9,7 +9,10 @@ import { PDF_TO_PNG_OPTIONS_DEFAULTS } from './const';
 import { CanvasContext, NodeCanvasFactory } from './node.canvas.factory';
 import { propsToPdfDocInitParams } from './props.to.pdf.doc.init.params';
 
-export async function pdfToPng(pdfFilePathOrBuffer: string | ArrayBufferLike, props?: PdfToPngOptions): Promise<PngPageOutput[]> {
+export async function pdfToPng(
+    pdfFilePathOrBuffer: string | ArrayBufferLike,
+    props?: PdfToPngOptions,
+): Promise<PngPageOutput[]> {
     const isBuffer: boolean = Buffer.isBuffer(pdfFilePathOrBuffer);
 
     if (!isBuffer && !existsSync(pdfFilePathOrBuffer as string)) {
@@ -26,9 +29,10 @@ export async function pdfToPng(pdfFilePathOrBuffer: string | ArrayBufferLike, pr
     const pdfDocument: pdfApiTypes.PDFDocumentProxy = await pdfjs.getDocument(pdfDocInitParams).promise;
     const pngPagesOutput: PngPageOutput[] = [];
 
-    const targetedPageNumbers: number[] = props?.pagesToProcess !== undefined
-        ? props.pagesToProcess
-        : Array.from({ length: pdfDocument.numPages }, (_, index) => index + 1);
+    const targetedPageNumbers: number[] =
+        props?.pagesToProcess !== undefined
+            ? props.pagesToProcess
+            : Array.from({ length: pdfDocument.numPages }, (_, index) => index + 1);
 
     if (props?.strictPagesToProcess && targetedPageNumbers.some((pageNum) => pageNum < 1)) {
         throw new Error('Invalid pages requested, page number must be >= 1');
@@ -50,15 +54,16 @@ export async function pdfToPng(pdfFilePathOrBuffer: string | ArrayBufferLike, pr
         }
         const page: pdfApiTypes.PDFPageProxy = await pdfDocument.getPage(pageNumber);
         const viewport: pdfDisplayUtilsTypes.PageViewport = page.getViewport({
-            scale: props?.viewportScale  !== undefined 
-                ? props.viewportScale 
-                : (PDF_TO_PNG_OPTIONS_DEFAULTS.viewportScale as number),
+            scale:
+                props?.viewportScale !== undefined
+                    ? props.viewportScale
+                    : (PDF_TO_PNG_OPTIONS_DEFAULTS.viewportScale as number),
         });
         const canvasFactory = new NodeCanvasFactory();
         const canvasAndContext: CanvasContext = canvasFactory.create(viewport.width, viewport.height);
 
         const renderContext: pdfApiTypes.RenderParameters = {
-            canvasContext: canvasAndContext.context as CanvasRenderingContext2D,
+            canvasContext: canvasAndContext.context as SKRSContext2D,
             viewport,
             canvasFactory,
         };
@@ -77,7 +82,7 @@ export async function pdfToPng(pdfFilePathOrBuffer: string | ArrayBufferLike, pr
         }
         const pngPageOutput: PngPageOutput = {
             name: `${pageName}_page_${pageNumber}.png`,
-            content: (canvasAndContext.canvas as Canvas).toBuffer(),
+            content: (canvasAndContext.canvas as Canvas).toBuffer('image/png'),
             path: '',
         };
 
